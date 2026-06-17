@@ -31,6 +31,10 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  filters: {
+    type: Object,
+    default: () => ({}),
+  },
 })
 
 const analysis = ref(null)
@@ -52,8 +56,12 @@ async function runAnalysis() {
     analysis.value = null
     return
   }
-  analysis.value = await analyzeNutrition(props.dishIds)
+  analysis.value = await analyzeNutrition(props.dishIds, props.filters)
 }
 
-watch(() => props.dishIds.join(','), runAnalysis, { immediate: true })
+watch(
+  () => [props.dishIds.join(','), JSON.stringify(props.filters)],
+  runAnalysis,
+  { immediate: true },
+)
 </script>

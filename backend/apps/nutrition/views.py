@@ -8,6 +8,11 @@ class NutritionAnalysisView(APIView):
     def post(self, request):
         request_serializer = NutritionAnalysisRequestSerializer(data=request.data)
         request_serializer.is_valid(raise_exception=True)
-        result = analyze_dishes(request_serializer.validated_data["dish_ids"])
+        validated = request_serializer.validated_data
+        result = analyze_dishes(
+            validated["dish_ids"],
+            available_date=validated.get("available_date"),
+            meal_period=validated.get("meal_period"),
+        )
         response_serializer = NutritionAnalysisSerializer(result)
         return Response(response_serializer.data)

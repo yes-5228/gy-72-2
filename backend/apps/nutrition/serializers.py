@@ -11,6 +11,8 @@ class NutritionAnalysisRequestSerializer(serializers.Serializer):
         child=serializers.IntegerField(min_value=1),
         allow_empty=False,
     )
+    available_date = serializers.DateField(required=False)
+    meal_period = serializers.CharField(required=False, max_length=20)
 
 
 class NutritionAnalysisSerializer(serializers.Serializer):
@@ -19,8 +21,19 @@ class NutritionAnalysisSerializer(serializers.Serializer):
     advice = serializers.ListField(child=serializers.CharField())
 
 
-def analyze_dishes(dish_ids):
-    dishes = list(Dish.objects.filter(id__in=dish_ids).select_related("category"))
+def analyze_dishes(dish_ids, available_date=None, meal_period=None):
+    queryset = Dish.objects.filter(id__in=dish_ids, stock__gt=0).select_related("category")
+    if available_date:
+        queryset = queryset.filter(available_date=available_date)
+    if meal_period:
+        queryset = queryset.filter(meal_period=meal_period)
+    dishes = list(queryset)
+    available_ids = {dish.id for dish in dishes}
+    unavailable_ids = [did for did in dish_ids if did not in available_ids]
+    if unavailable_ids:
+        raise serializers.ValidationError(
+            f"部分菜品当前不可售（ID: {', '.join(map(str, unavailable_ids))}），请重新选择。"
+        )
     totals = {
         "calories": sum(dish.calories for dish in dishes),
         "protein": sum(Decimal(dish.protein) for dish in dishes),

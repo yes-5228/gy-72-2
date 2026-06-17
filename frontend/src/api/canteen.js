@@ -19,8 +19,15 @@ export function createOrder(payload) {
   return api.post('/orders/', payload)
 }
 
-export function analyzeNutrition(dishIds) {
-  return api.post('/nutrition/analyze/', { dish_ids: dishIds })
+export function analyzeNutrition(dishIds, filters = {}) {
+  const payload = { dish_ids: dishIds }
+  if (filters.available_date) {
+    payload.available_date = filters.available_date
+  }
+  if (filters.meal_period) {
+    payload.meal_period = filters.meal_period
+  }
+  return api.post('/nutrition/analyze/', payload)
 }
 
 export function fetchDeliveries() {
