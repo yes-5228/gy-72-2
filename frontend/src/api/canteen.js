@@ -21,11 +21,11 @@ export function createOrder(payload) {
 
 export function analyzeNutrition(dishIds, filters = {}) {
   const payload = { dish_ids: dishIds }
-  if (filters.available_date) {
-    payload.available_date = filters.available_date
-  }
-  if (filters.meal_period) {
-    payload.meal_period = filters.meal_period
+  const filterKeys = ['available_date', 'meal_period', 'category', 'recommended', 'in_stock']
+  for (const key of filterKeys) {
+    if (filters[key] !== undefined && filters[key] !== null && filters[key] !== '') {
+      payload[key] = filters[key]
+    }
   }
   return api.post('/nutrition/analyze/', payload)
 }

@@ -13,6 +13,9 @@ class NutritionAnalysisRequestSerializer(serializers.Serializer):
     )
     available_date = serializers.DateField(required=False)
     meal_period = serializers.CharField(required=False, max_length=20)
+    category = serializers.IntegerField(required=False)
+    recommended = serializers.BooleanField(required=False)
+    in_stock = serializers.BooleanField(required=False)
 
 
 class NutritionAnalysisSerializer(serializers.Serializer):
@@ -21,18 +24,43 @@ class NutritionAnalysisSerializer(serializers.Serializer):
     advice = serializers.ListField(child=serializers.CharField())
 
 
-def analyze_dishes(dish_ids, available_date=None, meal_period=None):
-    queryset = Dish.objects.filter(id__in=dish_ids, stock__gt=0).select_related("category")
+def analyze_dishes(dish_ids, available_date=None, meal_period=None, category=None, recommended=None, in_stock=None):
+    queryset = Dish.objects.filter(id__in=dish_ids).select_related("category")
+    if in_stock is True:
+        queryset = queryset.filter(stock__gt=0)
     if available_date:
         queryset = queryset.filter(available_date=available_date)
     if meal_period:
         queryset = queryset.filter(meal_period=meal_period)
+    if category:
+        queryset = queryset.filter(category_id=category)
+    if recommended is True:
+        queryset = queryset.filter(is_recommended=True)
     dishes = list(queryset)
     available_ids = {dish.id for dish in dishes}
-    unavailable_ids = [did for did in dish_ids if did not in available_ids]
-    if unavailable_ids:
+    unavailable_details = []
+    for did in dish_ids:
+        if did not in available_ids:
+            original = Dish.objects.filter(id=did).select_related("category").first()
+            name = original.name if original else f"ID:{did}"
+            reasons = []
+            if original:
+                if in_stock is True and original.stock == 0:
+                    reasons.append("已售罄")
+                if available_date and original.available_date != available_date:
+                    reasons.append(f"供应日期不匹配（需 {available_date}，实际 {original.available_date}）")
+                if meal_period and original.meal_period != meal_period:
+                    reasons.append(f"餐段不匹配（需 {meal_period}，实际 {original.meal_period}）")
+                if category and original.category_id != category:
+                    reasons.append("分类不匹配")
+                if recommended is True and not original.is_recommended:
+                    reasons.append("非推荐菜品")
+            if not reasons:
+                reasons.append("不符合当前筛选条件")
+            unavailable_details.append(f"「{name}」{'，'.join(reasons)}")
+    if unavailable_details:
         raise serializers.ValidationError(
-            f"部分菜品当前不可售（ID: {', '.join(map(str, unavailable_ids))}），请重新选择。"
+            f"以下菜品不符合当前筛选条件：{'；'.join(unavailable_details)}"
         )
     totals = {
         "calories": sum(dish.calories for dish in dishes),

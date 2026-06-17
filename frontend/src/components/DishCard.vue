@@ -1,7 +1,8 @@
 <template>
-  <article class="dish-card">
+  <article :class="['dish-card', { 'dish-card--sold-out': dish.stock === 0 }]">
     <div class="dish-media" :style="{ background: gradient }">
       <span>{{ dish.category_name }}</span>
+      <span v-if="dish.stock === 0" class="sold-out-badge">售罄</span>
     </div>
     <div class="dish-body">
       <div class="dish-heading">
@@ -18,8 +19,11 @@
         <span>钠 {{ dish.sodium }}mg</span>
       </div>
       <div class="dish-footer">
-        <span :class="['stock-pill', dish.stock < 10 ? 'warning' : '']">库存 {{ dish.stock }}</span>
-        <button type="button" :disabled="dish.stock === 0" @click="$emit('add', dish)">加入餐盘</button>
+        <span :class="['stock-pill', dish.stock === 0 ? 'sold-out' : dish.stock < 10 ? 'warning' : '']">
+          {{ dish.stock === 0 ? '已售罄' : `库存 ${dish.stock}` }}
+        </span>
+        <button v-if="dish.stock > 0" type="button" @click="$emit('add', dish)">加入餐盘</button>
+        <span v-else class="sold-out-text">暂不可点</span>
       </div>
     </div>
   </article>

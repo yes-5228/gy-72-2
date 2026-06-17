@@ -225,6 +225,36 @@ textarea {
   gap: 16px;
 }
 
+.removal-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #f5d6a8;
+  border-radius: 8px;
+  background: #fff8ef;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.removal-banner strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #9a5b00;
+}
+
+.removal-banner ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #445248;
+  line-height: 1.7;
+  font-size: 13px;
+}
+
+.removal-banner .ghost-button {
+  flex-shrink: 0;
+}
+
 .dish-card,
 .panel,
 .delivery-card,
@@ -241,6 +271,7 @@ textarea {
 .dish-media {
   display: flex;
   align-items: flex-end;
+  gap: 8px;
   min-height: 128px;
   padding: 14px;
   color: #fff;
@@ -251,6 +282,20 @@ textarea {
   border-radius: 999px;
   background: rgb(23 32 26 / 0.6);
   padding: 5px 10px;
+}
+
+.sold-out-badge {
+  background: #c0392b !important;
+  font-size: 13px;
+  letter-spacing: 2px;
+}
+
+.dish-card--sold-out {
+  opacity: 0.65;
+}
+
+.dish-card--sold-out .dish-media {
+  background: linear-gradient(135deg, #888, #bbb) !important;
 }
 
 .dish-body {
@@ -318,6 +363,16 @@ textarea {
   color: #9a5b00;
 }
 
+.stock-pill.sold-out {
+  background: #fdecea;
+  color: #c0392b;
+}
+
+.sold-out-text {
+  font-size: 13px;
+  color: #999;
+}
+
 .side-stack {
   display: grid;
   gap: 16px;
@@ -345,11 +400,17 @@ textarea {
 }
 
 .empty-state,
-.loading {
+.loading,
+.nutrition-error {
   border-radius: 8px;
   background: #f1f5f2;
   color: #66746b;
   padding: 14px;
+}
+
+.nutrition-error {
+  background: #fdecea;
+  color: #c0392b;
 }
 
 .cart-list,

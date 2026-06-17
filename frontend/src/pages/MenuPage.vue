@@ -51,6 +51,16 @@
         </div>
       </div>
 
+      <div v-if="removalNotices.length > 0" class="removal-banner">
+        <div class="removal-banner-body">
+          <strong>餐盘调整</strong>
+          <ul>
+            <li v-for="(notice, idx) in removalNotices" :key="idx">{{ notice }}</li>
+          </ul>
+        </div>
+        <button class="ghost-button small" type="button" @click="removalNotices = []">知道了</button>
+      </div>
+
       <div v-if="loading" class="loading">菜品加载中...</div>
       <div v-else class="dish-grid">
         <DishCard v-for="dish in dishes" :key="dish.id" :dish="dish" @add="addToCart" />
@@ -87,6 +97,7 @@ const categories = ref([])
 const dishes = ref([])
 const cart = ref([])
 const loading = ref(false)
+const removalNotices = ref([])
 const filters = reactive({
   meal_period: '',
   category: '',
@@ -112,13 +123,20 @@ const cartDishIds = computed(() => cart.value.map((item) => item.dish.id))
 
 const availableDishIds = computed(() => new Set(dishes.value.map((d) => d.id)))
 
-const nutritionFilters = computed(() => ({
-  available_date: filters.available_date,
-  meal_period: filters.meal_period,
-}))
+const nutritionFilters = computed(() => {
+  const result = {
+    available_date: filters.available_date,
+    meal_period: filters.meal_period,
+    category: filters.category,
+    recommended: filters.recommended === '1',
+    in_stock: filters.in_stock === '1' ? true : filters.in_stock === '0' ? false : undefined,
+  }
+  return result
+})
 
 async function loadData() {
   loading.value = true
+  removalNotices.value = []
   try {
     const [categoryData, dishData] = await Promise.all([
       fetchCategories(),
@@ -139,16 +157,29 @@ async function loadData() {
 }
 
 function cleanupCart() {
-  cart.value = cart.value.filter((item) => {
+  const notices = []
+  const kept = []
+  for (const item of cart.value) {
     const dish = dishes.value.find((d) => d.id === item.dish.id)
-    if (!dish) return false
-    if (dish.stock === 0) return false
-    item.dish.stock = dish.stock
+    if (!dish) {
+      notices.push(`「${item.dish.name}」已移除：不在当前筛选结果中`)
+      continue
+    }
+    if (dish.stock === 0) {
+      notices.push(`「${item.dish.name}」已移除：已售罄`)
+      continue
+    }
     if (item.quantity > dish.stock) {
+      notices.push(`「${item.dish.name}」数量由 ${item.quantity} 调整为 ${dish.stock}：库存不足`)
       item.quantity = dish.stock
     }
-    return true
-  })
+    item.dish.stock = dish.stock
+    kept.push(item)
+  }
+  cart.value = kept
+  if (notices.length > 0) {
+    removalNotices.value = notices
+  }
 }
 
 function addToCart(dish) {

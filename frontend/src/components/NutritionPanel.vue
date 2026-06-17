@@ -7,7 +7,8 @@
       </button>
     </div>
 
-    <div v-if="!analysis" class="empty-state">餐盘中有菜品后可查看总热量、蛋白质、脂肪、碳水和钠含量。</div>
+    <div v-if="error" class="nutrition-error">{{ error }}</div>
+    <div v-else-if="!analysis" class="empty-state">餐盘中有菜品后可查看总热量、蛋白质、脂肪、碳水和钠含量。</div>
     <template v-else>
       <div class="macro-grid">
         <div v-for="item in macroItems" :key="item.label">
@@ -38,6 +39,7 @@ const props = defineProps({
 })
 
 const analysis = ref(null)
+const error = ref('')
 
 const macroItems = computed(() => {
   if (!analysis.value) return []
@@ -54,9 +56,16 @@ const macroItems = computed(() => {
 async function runAnalysis() {
   if (props.dishIds.length === 0) {
     analysis.value = null
+    error.value = ''
     return
   }
-  analysis.value = await analyzeNutrition(props.dishIds, props.filters)
+  error.value = ''
+  try {
+    analysis.value = await analyzeNutrition(props.dishIds, props.filters)
+  } catch (err) {
+    analysis.value = null
+    error.value = err.message || '营养分析失败，请检查餐盘中的菜品是否符合当前筛选条件。'
+  }
 }
 
 watch(

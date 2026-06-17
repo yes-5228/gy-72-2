@@ -13,6 +13,9 @@ class NutritionAnalysisView(APIView):
             validated["dish_ids"],
             available_date=validated.get("available_date"),
             meal_period=validated.get("meal_period"),
+            category=validated.get("category"),
+            recommended=validated.get("recommended"),
+            in_stock=validated.get("in_stock"),
         )
         response_serializer = NutritionAnalysisSerializer(result)
         return Response(response_serializer.data)
