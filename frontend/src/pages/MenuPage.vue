@@ -51,14 +51,14 @@
         </div>
       </div>
 
-      <div v-if="removalNotices.length > 0" class="removal-banner">
+      <div v-if="removalNotices.length > 0" :class="['removal-banner', { 'fade-out': removalFading }]">
         <div class="removal-banner-body">
           <strong>餐盘调整</strong>
           <ul>
             <li v-for="(notice, idx) in removalNotices" :key="idx">{{ notice }}</li>
           </ul>
         </div>
-        <button class="ghost-button small" type="button" @click="removalNotices = []">知道了</button>
+        <button class="ghost-button small" type="button" @click="dismissRemovalNotices">知道了</button>
       </div>
 
       <div v-if="loading" class="loading">菜品加载中...</div>
@@ -80,7 +80,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { fetchCategories, fetchDishes } from '../api/canteen'
 import DishCard from '../components/DishCard.vue'
 import NutritionPanel from '../components/NutritionPanel.vue'
@@ -98,6 +98,35 @@ const dishes = ref([])
 const cart = ref([])
 const loading = ref(false)
 const removalNotices = ref([])
+const removalFading = ref(false)
+let removalTimer = null
+let fadeTimer = null
+
+function showRemovalNotices(notices) {
+  clearTimeout(removalTimer)
+  clearTimeout(fadeTimer)
+  removalFading.value = false
+  removalNotices.value = notices
+  removalTimer = setTimeout(() => {
+    dismissRemovalNotices()
+  }, 5000)
+}
+
+function dismissRemovalNotices() {
+  clearTimeout(removalTimer)
+  clearTimeout(fadeTimer)
+  if (removalNotices.value.length === 0) return
+  removalFading.value = true
+  fadeTimer = setTimeout(() => {
+    removalNotices.value = []
+    removalFading.value = false
+  }, 500)
+}
+
+onBeforeUnmount(() => {
+  clearTimeout(removalTimer)
+  clearTimeout(fadeTimer)
+})
 const filters = reactive({
   meal_period: '',
   category: '',
@@ -178,7 +207,7 @@ function cleanupCart() {
   }
   cart.value = kept
   if (notices.length > 0) {
-    removalNotices.value = notices
+    showRemovalNotices(notices)
   }
 }
 

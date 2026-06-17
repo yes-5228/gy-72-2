@@ -28,6 +28,8 @@ def analyze_dishes(dish_ids, available_date=None, meal_period=None, category=Non
     queryset = Dish.objects.filter(id__in=dish_ids).select_related("category")
     if in_stock is True:
         queryset = queryset.filter(stock__gt=0)
+    elif in_stock is False:
+        queryset = queryset.filter(stock=0)
     if available_date:
         queryset = queryset.filter(available_date=available_date)
     if meal_period:
@@ -47,10 +49,12 @@ def analyze_dishes(dish_ids, available_date=None, meal_period=None, category=Non
             if original:
                 if in_stock is True and original.stock == 0:
                     reasons.append("已售罄")
+                if in_stock is False and original.stock > 0:
+                    reasons.append("非售罄菜品")
                 if available_date and original.available_date != available_date:
-                    reasons.append(f"供应日期不匹配（需 {available_date}，实际 {original.available_date}）")
+                    reasons.append(f"供应日期不匹配")
                 if meal_period and original.meal_period != meal_period:
-                    reasons.append(f"餐段不匹配（需 {meal_period}，实际 {original.meal_period}）")
+                    reasons.append(f"餐段不匹配")
                 if category and original.category_id != category:
                     reasons.append("分类不匹配")
                 if recommended is True and not original.is_recommended:
