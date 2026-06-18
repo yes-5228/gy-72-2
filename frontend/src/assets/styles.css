@@ -443,6 +443,22 @@ textarea {
 .nutrition-error {
   background: #fdecea;
   color: #c0392b;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.nutrition-error.fade-out {
+  animation: fadeOut 0.5s ease-out forwards;
+}
+
+.nutrition-error small {
+  font-size: 11px;
+  opacity: 0.7;
+  white-space: nowrap;
 }
 
 .cart-list,
@@ -470,6 +486,46 @@ textarea {
   display: block;
   color: #66746b;
   margin-top: 3px;
+}
+
+.cart-item--invalid {
+  background: #fdecea;
+  border: 1px solid #f5c6c2;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #f5c6c2;
+}
+
+.cart-item--invalid strong {
+  color: #c0392b;
+}
+
+.cart-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.remove-btn {
+  border: none;
+  background: transparent;
+  color: #c0392b;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.remove-btn:hover {
+  background: #f5c6c2;
+}
+
+.issue-text {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #c0392b;
 }
 
 .stepper {

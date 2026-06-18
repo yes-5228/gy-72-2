@@ -7,15 +7,21 @@
 
     <div v-if="cart.length === 0" class="empty-state">从菜品列表选择餐品后可提交提前订餐。</div>
     <div v-else class="cart-list">
-      <div v-for="item in cart" :key="item.dish.id" class="cart-item">
+      <div v-for="item in cart" :key="item.dish.id" :class="['cart-item', { 'cart-item--invalid': dishIssues[item.dish.id] }]">
         <div>
-          <strong>{{ item.dish.name }}</strong>
+          <div class="cart-item-head">
+            <strong>{{ item.dish.name }}</strong>
+            <button v-if="dishIssues[item.dish.id]" class="remove-btn" type="button" @click="$emit('remove', item.dish.id)" title="移除">
+              ×
+            </button>
+          </div>
           <small>￥{{ item.dish.price }} / 份</small>
+          <p v-if="dishIssues[item.dish.id]" class="issue-text">{{ dishIssues[item.dish.id] }}</p>
         </div>
         <div class="stepper">
-          <button type="button" @click="$emit('decrease', item.dish.id)">-</button>
+          <button type="button" :disabled="dishIssues[item.dish.id]" @click="$emit('decrease', item.dish.id)">-</button>
           <span>{{ item.quantity }}</span>
-          <button type="button" @click="$emit('increase', item.dish)">+</button>
+          <button type="button" :disabled="dishIssues[item.dish.id]" @click="$emit('increase', item.dish)">+</button>
         </div>
       </div>
     </div>
@@ -67,9 +73,13 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  dishIssues: {
+    type: Object,
+    default: () => ({}),
+  },
 })
 
-const emit = defineEmits(['created', 'increase', 'decrease'])
+const emit = defineEmits(['created', 'increase', 'decrease', 'remove'])
 const submitting = ref(false)
 const message = ref('')
 

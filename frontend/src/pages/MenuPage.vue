@@ -53,7 +53,7 @@
 
       <div v-if="removalNotices.length > 0" :class="['removal-banner', { 'fade-out': removalFading }]">
         <div class="removal-banner-body">
-          <strong>餐盘调整</strong>
+          <strong>菜品提示</strong>
           <ul>
             <li v-for="(notice, idx) in removalNotices" :key="idx">{{ notice }}</li>
           </ul>
@@ -70,9 +70,11 @@
     <aside class="side-stack">
       <OrderPanel
         :cart="cart"
+        :dish-issues="dishIssues"
         @created="handleOrderCreated"
         @increase="addToCart"
         @decrease="decreaseCart"
+        @remove="removeFromCart"
       />
       <NutritionPanel :dish-ids="cartDishIds" :filters="nutritionFilters" />
     </aside>
@@ -152,6 +154,24 @@ const cartDishIds = computed(() => cart.value.map((item) => item.dish.id))
 
 const availableDishIds = computed(() => new Set(dishes.value.map((d) => d.id)))
 
+const dishIssues = computed(() => {
+  const issues = {}
+  for (const item of cart.value) {
+    const reasons = []
+    const dish = dishes.value.find((d) => d.id === item.dish.id)
+    if (!dish) {
+      reasons.push('不在当前筛选结果中')
+    } else {
+      if (dish.stock === 0) reasons.push('已售罄')
+      else if (item.quantity > dish.stock) reasons.push(`库存仅 ${dish.stock} 份`)
+    }
+    if (reasons.length > 0) {
+      issues[item.dish.id] = reasons.join('，')
+    }
+  }
+  return issues
+})
+
 const nutritionFilters = computed(() => {
   const result = {
     available_date: filters.available_date,
@@ -165,7 +185,9 @@ const nutritionFilters = computed(() => {
 
 async function loadData() {
   loading.value = true
-  removalNotices.value = []
+  if (removalNotices.value.length > 0) {
+    dismissRemovalNotices()
+  }
   try {
     const [categoryData, dishData] = await Promise.all([
       fetchCategories(),
@@ -187,28 +209,27 @@ async function loadData() {
 
 function cleanupCart() {
   const notices = []
-  const kept = []
   for (const item of cart.value) {
     const dish = dishes.value.find((d) => d.id === item.dish.id)
     if (!dish) {
-      notices.push(`「${item.dish.name}」已移除：不在当前筛选结果中`)
+      notices.push(`「${item.dish.name}」不在当前筛选结果中`)
       continue
     }
     if (dish.stock === 0) {
-      notices.push(`「${item.dish.name}」已移除：已售罄`)
-      continue
-    }
-    if (item.quantity > dish.stock) {
-      notices.push(`「${item.dish.name}」数量由 ${item.quantity} 调整为 ${dish.stock}：库存不足`)
+      notices.push(`「${dish.name}」已售罄`)
+    } else if (item.quantity > dish.stock) {
+      notices.push(`「${dish.name}」库存不足，仅剩 ${dish.stock} 份`)
       item.quantity = dish.stock
     }
     item.dish.stock = dish.stock
-    kept.push(item)
   }
-  cart.value = kept
   if (notices.length > 0) {
     showRemovalNotices(notices)
   }
+}
+
+function removeFromCart(dishId) {
+  cart.value = cart.value.filter((item) => item.dish.id !== dishId)
 }
 
 function addToCart(dish) {

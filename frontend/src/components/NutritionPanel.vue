@@ -7,7 +7,10 @@
       </button>
     </div>
 
-    <div v-if="error" class="nutrition-error">{{ error }}</div>
+    <div v-if="error" :class="['nutrition-error', { 'fade-out': errorFading }]" @click="dismissError">
+      <span>{{ error }}</span>
+      <small>点击关闭</small>
+    </div>
     <div v-else-if="!analysis" class="empty-state">餐盘中有菜品后可查看总热量、蛋白质、脂肪、碳水和钠含量。</div>
     <template v-else>
       <div class="macro-grid">
@@ -24,7 +27,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { analyzeNutrition } from '../api/canteen'
 
 const props = defineProps({
@@ -40,6 +43,37 @@ const props = defineProps({
 
 const analysis = ref(null)
 const error = ref('')
+const errorFading = ref(false)
+let errorTimer = null
+let errorFadeTimer = null
+
+function clearErrorTimers() {
+  clearTimeout(errorTimer)
+  clearTimeout(errorFadeTimer)
+}
+
+function showError(msg) {
+  clearErrorTimers()
+  errorFading.value = false
+  error.value = msg
+  errorTimer = setTimeout(() => {
+    dismissError()
+  }, 5000)
+}
+
+function dismissError() {
+  clearErrorTimers()
+  if (!error.value) return
+  errorFading.value = true
+  errorFadeTimer = setTimeout(() => {
+    error.value = ''
+    errorFading.value = false
+  }, 500)
+}
+
+onBeforeUnmount(() => {
+  clearErrorTimers()
+})
 
 const macroItems = computed(() => {
   if (!analysis.value) return []
@@ -56,15 +90,19 @@ const macroItems = computed(() => {
 async function runAnalysis() {
   if (props.dishIds.length === 0) {
     analysis.value = null
+    clearErrorTimers()
     error.value = ''
+    errorFading.value = false
     return
   }
+  clearErrorTimers()
   error.value = ''
+  errorFading.value = false
   try {
     analysis.value = await analyzeNutrition(props.dishIds, props.filters)
   } catch (err) {
     analysis.value = null
-    error.value = err.message || '营养分析失败，请检查餐盘中的菜品是否符合当前筛选条件。'
+    showError(err.message || '营养分析失败，请检查餐盘中的菜品是否符合当前筛选条件。')
   }
 }
 
