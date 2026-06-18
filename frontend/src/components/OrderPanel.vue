@@ -54,18 +54,23 @@
 
       <div class="total-row">
         <span>合计</span>
-        <strong>￥{{ totalAmount }}</strong>
+        <div class="total-col">
+          <strong>￥{{ totalAmount }}</strong>
+          <small v-if="invalidItems.length > 0" class="excluded-note">
+            已排除 {{ invalidItems.length }} 道有问题的菜品
+          </small>
+        </div>
       </div>
-      <button class="primary-button" type="submit" :disabled="submitting || cart.length === 0">
-        {{ submitting ? '提交中...' : '提交订单' }}
+      <button class="primary-button" type="submit" :disabled="!canSubmit">
+        {{ submitting ? '提交中...' : invalidItems.length > 0 ? '请先移除有问题的菜品' : '提交订单' }}
       </button>
-      <p v-if="message" class="form-message">{{ message }}</p>
+      <p v-if="message" :class="['form-message', { 'form-message--error': invalidItems.length > 0 }]">{{ message }}</p>
     </form>
   </section>
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { createOrder } from '../api/canteen'
 
 const props = defineProps({
@@ -93,18 +98,38 @@ const form = reactive({
   note: '',
 })
 
+const validItems = computed(() =>
+  props.cart.filter((item) => !props.dishIssues[item.dish.id]),
+)
+
+const invalidItems = computed(() =>
+  props.cart.filter((item) => props.dishIssues[item.dish.id]),
+)
+
 const totalAmount = computed(() =>
-  props.cart.reduce((sum, item) => sum + Number(item.dish.price) * item.quantity, 0).toFixed(2),
+  validItems.value.reduce((sum, item) => sum + Number(item.dish.price) * item.quantity, 0).toFixed(2),
+)
+
+const invalidItemNames = computed(() =>
+  invalidItems.value.map((item) => `「${item.dish.name}」`).join('、'),
+)
+
+const canSubmit = computed(() =>
+  validItems.value.length > 0 && invalidItems.value.length === 0 && !submitting.value,
 )
 
 async function submitOrder() {
+  if (invalidItems.value.length > 0) {
+    message.value = `请先移除有问题的菜品：${invalidItemNames.value}`
+    return
+  }
   submitting.value = true
   message.value = ''
   try {
     const payload = {
       ...form,
       pickup_time: new Date(form.pickup_time).toISOString(),
-      items: props.cart.map((item) => ({ dish: item.dish.id, quantity: item.quantity })),
+      items: validItems.value.map((item) => ({ dish: item.dish.id, quantity: item.quantity })),
     }
     const order = await createOrder(payload)
     message.value = `订单 #${order.id} 已提交，金额 ￥${order.total_amount}`
@@ -115,4 +140,13 @@ async function submitOrder() {
     submitting.value = false
   }
 }
+
+watch(
+  () => invalidItems.value.length,
+  (newLen, oldLen) => {
+    if (newLen === 0 && oldLen > 0 && message.value.includes('请先移除有问题的菜品')) {
+      message.value = ''
+    }
+  },
+)
 </script>
